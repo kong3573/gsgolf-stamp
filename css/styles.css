@@ -242,6 +242,8 @@ button.ghost {
   gap: 8px;
 }
 
+.actions .wide { grid-column: 1 / -1; }
+
 .actions button { margin-top: 8px; }
 
 button:disabled {

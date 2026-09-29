@@ -89,13 +89,26 @@ service cloud.firestore {
         && request.resource.data.totalRedeemed == resource.data.totalRedeemed + 1;
     }
 
+    function adminDeduct() {
+      return adminStampBase()
+        && resource.data.stamps >= 1
+        && resource.data.totalEarned >= 1
+        && request.resource.data.stamps == resource.data.stamps - 1
+        && request.resource.data.totalEarned == resource.data.totalEarned - 1
+        && request.resource.data.totalRedeemed == resource.data.totalRedeemed;
+    }
+
     function adminLog() {
       return isAdmin()
         && request.resource.data.keys().hasOnly([
           'uid', 'phone', 'type', 'byAdminUid', 'createdAt', 'stampsAfter'
         ])
         && request.resource.data.byAdminUid == request.auth.uid
-        && (request.resource.data.type == 'earn' || request.resource.data.type == 'redeem')
+        && (
+          request.resource.data.type == 'earn'
+          || request.resource.data.type == 'redeem'
+          || request.resource.data.type == 'deduct'
+        )
         && request.resource.data.uid is string
         && isPhone(request.resource.data.phone)
         && request.resource.data.stampsAfter is number
@@ -173,7 +186,7 @@ service cloud.firestore {
         && get(pendingPath(request.resource.data.phone)).data.consent == true
         && get(pendingPath(request.resource.data.phone)).data.name == request.resource.data.name
         && get(pendingPath(request.resource.data.phone)).data.phone == request.resource.data.phone;
-      allow update: if customerProfileUpdate(userId) || adminEarn() || adminRedeem();
+      allow update: if customerProfileUpdate(userId) || adminEarn() || adminRedeem() || adminDeduct();
     }
 
     match /logs/{logId} {

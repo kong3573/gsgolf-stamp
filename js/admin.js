@@ -7,6 +7,7 @@ const LOG_LABEL = {
   register: '등록',
   earn: '적립',
   redeem: '무료 이용',
+  deduct: '1회 차감',
 };
 
 let auth;
@@ -174,11 +175,18 @@ function memberNodes(id, data) {
   earn.type = 'button';
   earn.disabled = stamps >= 10;
   earn.addEventListener('click', () => { void changeStamps(id, 'earn'); });
-  const redeem = el('button', 'secondary', '10회 사용');
+  const deduct = el('button', 'ghost', '1회 차감');
+  deduct.type = 'button';
+  deduct.disabled = stamps < 1;
+  deduct.addEventListener('click', () => {
+    if (!window.confirm('스탬프 1개를 차감할까요?')) return;
+    void changeStamps(id, 'deduct');
+  });
+  const redeem = el('button', 'secondary wide', '10회 사용');
   redeem.type = 'button';
   redeem.disabled = stamps < 10;
   redeem.addEventListener('click', () => { void changeStamps(id, 'redeem'); });
-  actions.append(earn, redeem);
+  actions.append(earn, deduct, redeem);
   wrap.append(actions);
   const note = el('p', 'help', stamps >= 10
     ? '10개입니다. 무료 이용을 먼저 사용해 주세요.'
@@ -243,12 +251,17 @@ async function changeStamps(id, type) {
       if (typeof stamps !== 'number') throw Object.assign(new Error('BAD_DATA'), { code: 'BAD_DATA' });
       if (type === 'earn' && stamps >= 10) throw Object.assign(new Error('FULL'), { code: 'FULL' });
       if (type === 'redeem' && stamps < 10) throw Object.assign(new Error('SHORT'), { code: 'SHORT' });
-      const stampsAfter = type === 'earn' ? stamps + 1 : stamps - 10;
+      if (type === 'deduct' && stamps < 1) throw Object.assign(new Error('EMPTY'), { code: 'EMPTY' });
+      if (type === 'deduct' && (typeof data.totalEarned !== 'number' || data.totalEarned < 1)) {
+        throw Object.assign(new Error('EMPTY'), { code: 'EMPTY' });
+      }
+      const stampsAfter = type === 'earn' ? stamps + 1 : stamps - (type === 'deduct' ? 1 : 10);
       const patch = {
         stamps: stampsAfter,
         updatedAt: dbMod.serverTimestamp(),
       };
       if (type === 'earn') patch.totalEarned = data.totalEarned + 1;
+      else if (type === 'deduct') patch.totalEarned = data.totalEarned - 1;
       else patch.totalRedeemed = data.totalRedeemed + 1;
       tx.update(ref, patch);
       tx.set(dbMod.doc(dbMod.collection(db, 'logs')), {
@@ -263,7 +276,12 @@ async function changeStamps(id, type) {
     const fresh = await dbMod.getDoc(dbMod.doc(db, 'users', id));
     showResult('조회 결과', memberNodes(id, fresh.data()));
     const ok = document.getElementById('act-ok');
-    if (ok) ok.textContent = type === 'earn' ? '스탬프를 1개 적립했습니다.' : '무료 이용 1회를 사용 처리했습니다.';
+    const done = {
+      earn: '스탬프를 1개 적립했습니다.',
+      deduct: '스탬프를 1개 차감했습니다.',
+      redeem: '무료 이용 1회를 사용 처리했습니다.',
+    };
+    if (ok) ok.textContent = done[type];
     await refreshLogs();
   } catch (error) {
     buttons.forEach((button, index) => {
@@ -272,6 +290,7 @@ async function changeStamps(id, type) {
     if (!errorNode) return;
     if (error.code === 'FULL') setError(errorNode, '10개입니다. 무료 이용을 먼저 사용해 주세요.');
     else if (error.code === 'SHORT') setError(errorNode, '10개가 차야 사용할 수 있습니다.');
+    else if (error.code === 'EMPTY') setError(errorNode, '차감할 스탬프가 없습니다.');
     else if (error.code === 'MISSING') setError(errorNode, '손님 기록을 찾지 못했습니다.');
     else setError(errorNode, authErrorMessage(error, 'admin'));
   }
