@@ -23,7 +23,9 @@
 
 ## GitHub Pages
 
-1. 저장소 이름은 `gsgolf-stamp`, 공개(Public), 브랜치는 `main` 입니다.
+이 저장소는 https://github.com/kong3573/gsgolf-stamp 이고, 손님 주소는 https://kong3573.github.io/gsgolf-stamp/ 입니다. 직원 주소는 그 뒤에 `admin.html` 을 붙입니다.
+
+1. 저장소 이름은 `gsgolf-stamp`, 공개(Public), 브랜치는 `main` 입니다. Pages는 `main` 의 `/` 에서 배포됩니다.
 2. 저장소 Settings → Pages → Build and deployment → Deploy from a branch.
 3. Branch는 `main`, 폴더는 `/ (root)`, Save.
 4. 손님 주소는 `https://<USER>.github.io/gsgolf-stamp/` 입니다. QR은 이 주소만 사용합니다.
