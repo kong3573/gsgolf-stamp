@@ -1,0 +1,184 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isPhone(phone) {
+      return phone is string && phone.matches('^01[016789][0-9]{7,8}$');
+    }
+
+    function isThisCustomer(phone) {
+      return signedIn()
+        && request.auth.token.email == phone + '@stamp.gsgolf.local';
+    }
+
+    function validName(name) {
+      return name is string && name.size() > 0 && name.size() <= 40;
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function pendingPath(phone) {
+      return /databases/$(database)/documents/pending/$(phone);
+    }
+
+    function userShape(data) {
+      return data.keys().hasOnly([
+        'phone', 'name', 'stamps', 'totalEarned', 'totalRedeemed',
+        'mustChangePassword', 'role', 'createdAt', 'updatedAt'
+      ]);
+    }
+
+    // 손님 본인: 스탬프·누적·역할·번호는 그대로. mustChangePassword 는 true → false 만.
+    function customerProfileUpdate(userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && userShape(request.resource.data)
+        && validName(request.resource.data.name)
+        && request.resource.data.phone == resource.data.phone
+        && request.resource.data.stamps == resource.data.stamps
+        && request.resource.data.totalEarned == resource.data.totalEarned
+        && request.resource.data.totalRedeemed == resource.data.totalRedeemed
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && (
+          request.resource.data.mustChangePassword == resource.data.mustChangePassword
+          || (
+            resource.data.mustChangePassword == true
+            && request.resource.data.mustChangePassword == false
+          )
+        );
+    }
+
+    function adminStampBase() {
+      return isAdmin()
+        && userShape(request.resource.data)
+        && resource.data.role == 'customer'
+        && request.resource.data.phone == resource.data.phone
+        && request.resource.data.name == resource.data.name
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.mustChangePassword == resource.data.mustChangePassword
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function adminEarn() {
+      return adminStampBase()
+        && resource.data.stamps < 10
+        && request.resource.data.stamps == resource.data.stamps + 1
+        && request.resource.data.stamps <= 10
+        && request.resource.data.totalEarned == resource.data.totalEarned + 1
+        && request.resource.data.totalRedeemed == resource.data.totalRedeemed;
+    }
+
+    function adminRedeem() {
+      return adminStampBase()
+        && resource.data.stamps >= 10
+        && request.resource.data.stamps == resource.data.stamps - 10
+        && request.resource.data.totalEarned == resource.data.totalEarned
+        && request.resource.data.totalRedeemed == resource.data.totalRedeemed + 1;
+    }
+
+    function adminLog() {
+      return isAdmin()
+        && request.resource.data.keys().hasOnly([
+          'uid', 'phone', 'type', 'byAdminUid', 'createdAt', 'stampsAfter'
+        ])
+        && request.resource.data.byAdminUid == request.auth.uid
+        && (request.resource.data.type == 'earn' || request.resource.data.type == 'redeem')
+        && request.resource.data.uid is string
+        && isPhone(request.resource.data.phone)
+        && request.resource.data.stampsAfter is number
+        && request.resource.data.stampsAfter >= 0
+        && request.resource.data.stampsAfter <= 10
+        && request.resource.data.createdAt == request.time
+        && exists(userPath(request.resource.data.uid))
+        && get(userPath(request.resource.data.uid)).data.phone == request.resource.data.phone;
+    }
+
+    // 가입 배치의 이전 상태는 pending 존재, 이후 상태는 users 문서 생성.
+    function customerRegisterLog() {
+      return signedIn()
+        && request.resource.data.keys().hasOnly([
+          'uid', 'phone', 'type', 'byAdminUid', 'createdAt', 'stampsAfter', 'consent'
+        ])
+        && request.resource.data.type == 'register'
+        && request.resource.data.uid == request.auth.uid
+        && isPhone(request.resource.data.phone)
+        && isThisCustomer(request.resource.data.phone)
+        && request.resource.data.byAdminUid is string
+        && request.resource.data.byAdminUid.size() > 0
+        && request.resource.data.stampsAfter == 0
+        && request.resource.data.consent == true
+        && request.resource.data.createdAt == request.time
+        && exists(pendingPath(request.resource.data.phone))
+        && get(pendingPath(request.resource.data.phone)).data.createdBy == request.resource.data.byAdminUid
+        && get(pendingPath(request.resource.data.phone)).data.phone == request.resource.data.phone
+        && get(pendingPath(request.resource.data.phone)).data.consent == true
+        && getAfter(userPath(request.auth.uid)).data.phone == request.resource.data.phone
+        && getAfter(userPath(request.auth.uid)).data.stamps == 0;
+    }
+
+    match /admins/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /pending/{phone} {
+      allow get: if isAdmin() || isThisCustomer(phone);
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        && isPhone(phone)
+        && request.resource.data.keys().hasOnly([
+          'name', 'phone', 'createdBy', 'createdAt', 'consent'
+        ])
+        && request.resource.data.phone == phone
+        && validName(request.resource.data.name)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.consent == true;
+      allow delete: if isAdmin()
+        || (
+          isThisCustomer(phone)
+          && getAfter(userPath(request.auth.uid)).data.phone == phone
+        );
+    }
+
+    match /users/{userId} {
+      allow get: if (signedIn() && request.auth.uid == userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && userShape(request.resource.data)
+        && isPhone(request.resource.data.phone)
+        && isThisCustomer(request.resource.data.phone)
+        && validName(request.resource.data.name)
+        && request.resource.data.stamps == 0
+        && request.resource.data.totalEarned == 0
+        && request.resource.data.totalRedeemed == 0
+        && request.resource.data.mustChangePassword == true
+        && request.resource.data.role == 'customer'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && exists(pendingPath(request.resource.data.phone))
+        && get(pendingPath(request.resource.data.phone)).data.consent == true
+        && get(pendingPath(request.resource.data.phone)).data.name == request.resource.data.name
+        && get(pendingPath(request.resource.data.phone)).data.phone == request.resource.data.phone;
+      allow update: if customerProfileUpdate(userId) || adminEarn() || adminRedeem();
+    }
+
+    match /logs/{logId} {
+      allow get, list: if isAdmin();
+      allow create: if adminLog() || customerRegisterLog();
+    }
+  }
+}

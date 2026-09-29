@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0e3b28">
+  <meta name="robots" content="noindex">
+  <title>광산골프 직원</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%238a5a12'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="page-admin">
+  <header class="mast">
+    <div class="wrap">
+      <p class="chip">직원 전용</p>
+      <h1>카운터</h1>
+      <p class="lede">등록, 적립, 무료 이용은 여기서만 합니다.</p>
+    </div>
+  </header>
+  <main id="panel" class="wrap">
+    <p class="card">직원 화면을 준비하고 있습니다.</p>
+  </main>
+  <footer class="wrap foot">이 주소는 카운터 북마크용입니다. 손님 QR에 넣지 마세요.</footer>
+  <noscript><p class="wrap banner warn">자바스크립트를 켜야 직원 화면을 쓸 수 있습니다.</p></noscript>
+
+  <template id="tpl-setup">
+    <section class="card narrow">
+      <h2 id="setup-title">설정이 필요합니다</h2>
+      <p class="help" id="setup-body">Firebase 웹 설정이 아직 없습니다. README대로 js/firebase-config.js 를 만든 뒤 다시 여세요.</p>
+    </section>
+  </template>
+
+  <template id="tpl-login">
+    <section class="card narrow">
+      <h2>직원 로그인</h2>
+      <p class="help">직원 이메일 계정으로 들어옵니다. 손님 휴대폰 번호가 아닙니다.</p>
+      <form id="login-form">
+        <label for="email">직원 이메일</label>
+        <input id="email" name="email" type="email" autocomplete="username" required>
+        <label for="password">비밀번호</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button class="primary" id="login" type="submit">로그인</button>
+        <p class="form-error" id="form-error" role="alert"></p>
+      </form>
+    </section>
+  </template>
+
+  <template id="tpl-app">
+    <div class="session">
+      <p id="who"></p>
+      <button class="ghost" id="logout" type="button">로그아웃</button>
+    </div>
+    <div class="desk">
+      <section class="card">
+        <h2>신규 등록</h2>
+        <p class="help">이름과 번호만 저장합니다. 초기 비밀번호는 뒷자리 4자리이며, 손님에게 말로 안내합니다.</p>
+        <form id="reg-form">
+          <label for="reg-name">이름</label>
+          <input id="reg-name" name="name" type="text" maxlength="40" autocomplete="name" required>
+          <label for="reg-phone">휴대폰 번호</label>
+          <input id="reg-phone" name="phone" type="tel" inputmode="tel" autocomplete="off" placeholder="010-1234-5678" maxlength="20" required>
+          <div class="policy">
+            <dl>
+              <dt>수집 항목</dt>
+              <dd>이름, 휴대폰 번호</dd>
+              <dt>이용 목적</dt>
+              <dd>스탬프 적립과 무료 이용(10회 적립 시 어프로치 연습 1시간) 확인</dd>
+              <dt>보유 기간</dt>
+              <dd>마지막 이용일로부터 1년</dd>
+              <dt>제3자 제공</dt>
+              <dd>하지 않습니다</dd>
+            </dl>
+            <label class="check">
+              <input id="reg-consent" type="checkbox" required>
+              <span>손님에게 위 안내를 했고, 수집·이용에 동의를 받았습니다.</span>
+            </label>
+          </div>
+          <button class="primary" id="reg-submit" type="submit">대기 등록</button>
+          <p class="form-ok" id="reg-ok" role="status"></p>
+          <p class="form-error" id="reg-error" role="alert"></p>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>번호 조회</h2>
+        <form id="find-form">
+          <label for="find-phone">휴대폰 번호</label>
+          <input id="find-phone" type="tel" inputmode="tel" autocomplete="off" placeholder="010-1234-5678" maxlength="20" required>
+          <button class="primary" id="find-submit" type="submit">조회</button>
+          <p class="form-error" id="find-error" role="alert"></p>
+        </form>
+      </section>
+
+      <section class="card span-2" id="result-card" hidden>
+        <h2 id="result-title">조회 결과</h2>
+        <div id="result"></div>
+      </section>
+
+      <section class="card span-2">
+        <h2>최근 기록</h2>
+        <ul class="log-list" id="log-list"></ul>
+      </section>
+
+      <section class="card span-2">
+        <h2>손님에게 줄 주소</h2>
+        <p class="help">QR은 이 주소만 사용합니다.</p>
+        <p class="url" id="customer-url"></p>
+        <button class="secondary" id="copy-customer" type="button">손님 주소 복사</button>
+        <h2 class="follow">직원 주소</h2>
+        <p class="help">카운터 북마크용입니다. 손님 QR이나 안내문에 넣지 마세요.</p>
+        <p class="url" id="admin-url"></p>
+        <button class="ghost" id="copy-admin" type="button">직원 주소 복사</button>
+      </section>
+    </div>
+  </template>
+
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

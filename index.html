@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0e3b28">
+  <meta name="robots" content="noindex">
+  <meta name="description" content="광산골프 어프로치 연습 스탬프. 10회를 채우면 연습 1시간 무료.">
+  <title>광산골프 스탬프</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%230e3b28'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23e7c98a' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="mast">
+    <div class="wrap">
+      <p class="eyebrow">광주 광산 · 실잔디 어프로치</p>
+      <h1>광산골프</h1>
+      <p class="lede">10회를 채우면 연습 1시간 무료</p>
+    </div>
+  </header>
+  <main id="panel" class="wrap">
+    <p class="card">스탬프 화면을 준비하고 있습니다.</p>
+  </main>
+  <footer class="wrap foot">적립과 무료 이용은 카운터에서만 처리합니다.</footer>
+  <noscript><p class="wrap banner warn">자바스크립트를 켜야 스탬프를 볼 수 있습니다.</p></noscript>
+
+  <template id="tpl-setup">
+    <section class="card narrow">
+      <h2 id="setup-title">설정이 필요합니다</h2>
+      <p class="help" id="setup-body">Firebase 웹 설정이 아직 없습니다. README의 순서대로 js/firebase-config.js 를 만든 뒤 이 페이지를 다시 여세요.</p>
+    </section>
+  </template>
+
+  <template id="tpl-login">
+    <section class="card narrow">
+      <h2>스탬프 확인</h2>
+      <p class="help">아이디는 휴대폰 번호입니다. 카운터에서 등록한 뒤, 첫 비밀번호는 뒷자리 4자리입니다. 들어가서 바로 바꾸세요.</p>
+      <form id="login-form">
+        <label for="phone">휴대폰 번호</label>
+        <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-1234-5678" maxlength="20" required>
+        <label for="password">비밀번호</label>
+        <div class="password-row">
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button class="tiny" id="toggle-pw" type="button">보기</button>
+        </div>
+        <details class="policy" id="privacy">
+          <summary>개인정보 안내 (처음 입장할 때 동의)</summary>
+          <dl>
+            <dt>수집 항목</dt>
+            <dd>이름, 휴대폰 번호</dd>
+            <dt>이용 목적</dt>
+            <dd>스탬프 적립과 무료 이용(10회 적립 시 어프로치 연습 1시간) 확인</dd>
+            <dt>보유 기간</dt>
+            <dd>마지막 이용일로부터 1년</dd>
+            <dt>제3자 제공</dt>
+            <dd>하지 않습니다</dd>
+          </dl>
+          <label class="check">
+            <input id="consent" type="checkbox">
+            <span>위 개인정보 수집·이용에 동의합니다.</span>
+          </label>
+        </details>
+        <button class="primary" id="login" type="submit">로그인</button>
+        <p class="form-error" id="form-error" role="alert"></p>
+      </form>
+    </section>
+  </template>
+
+  <template id="tpl-home">
+    <article class="ticket" id="ticket">
+      <p class="banner warn" id="must" hidden>초기 비밀번호는 뒷자리 4자리라 짧습니다. 아래에서 6자 이상으로 바꿔 주세요. 뒷자리만 그대로 쓰지 마세요.</p>
+      <div class="ticket-top">
+        <div>
+          <p class="kicker">어프로치 연습</p>
+          <h2 id="hello">스탬프</h2>
+        </div>
+        <p class="phone" id="masked"></p>
+      </div>
+      <p class="count" id="count" aria-live="polite"></p>
+      <ol class="stamp-grid" id="grid" aria-label="스탬프 10칸"></ol>
+      <p class="remain" id="remain"></p>
+      <p class="totals" id="totals"></p>
+    </article>
+    <section class="card" id="pw-card">
+      <h2>비밀번호 변경</h2>
+      <p class="help">6자 이상으로 정하세요. 뒷자리 4자리만 쓰지 마세요.</p>
+      <form id="pw-form">
+        <label for="current-pw">현재 비밀번호</label>
+        <input id="current-pw" type="password" autocomplete="current-password" required>
+        <label for="next-pw">새 비밀번호</label>
+        <input id="next-pw" type="password" autocomplete="new-password" minlength="6" required>
+        <label for="next-pw2">새 비밀번호 확인</label>
+        <input id="next-pw2" type="password" autocomplete="new-password" minlength="6" required>
+        <button class="primary" id="change-pw" type="submit">비밀번호 변경</button>
+        <p class="form-ok" id="pw-ok" role="status"></p>
+        <p class="form-error" id="pw-error" role="alert"></p>
+      </form>
+    </section>
+    <button class="ghost" id="logout" type="button">로그아웃</button>
+  </template>
+
+  <script type="module" src="js/customer.js"></script>
+</body>
+</html>
