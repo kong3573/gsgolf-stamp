@@ -34,7 +34,7 @@
   <template id="tpl-login">
     <section class="card narrow">
       <h2>스탬프 확인</h2>
-      <p class="help">처음이면 이름과 휴대폰 번호, 뒷자리 4자리로 로그인하세요. 바로 등록되고 스탬프는 0개로 시작합니다. 들어가서 비밀번호를 바꾸세요.</p>
+      <p class="help">처음이면 이름, 휴대폰 번호, 비밀번호를 입력하고 아래에 동의한 뒤 로그인하세요. 비밀번호는 뒷자리 4자리 또는 6자 이상입니다. 스탬프는 0개로 시작합니다.</p>
       <form id="login-form">
         <label for="name">이름</label>
         <input id="name" name="name" type="text" maxlength="40" autocomplete="name" placeholder="처음 시작할 때 입력">
@@ -45,8 +45,8 @@
           <input id="password" name="password" type="password" autocomplete="current-password" required>
           <button class="tiny" id="toggle-pw" type="button">보기</button>
         </div>
-        <details class="policy" id="privacy">
-          <summary>개인정보 안내 (처음 입장할 때 동의)</summary>
+        <details class="policy" id="privacy" open>
+          <summary>개인정보 안내</summary>
           <dl>
             <dt>수집 항목</dt>
             <dd>이름, 휴대폰 번호</dd>
@@ -57,11 +57,11 @@
             <dt>제3자 제공</dt>
             <dd>하지 않습니다</dd>
           </dl>
-          <label class="check">
-            <input id="consent" type="checkbox">
-            <span>위 개인정보 수집·이용에 동의합니다.</span>
-          </label>
         </details>
+        <label class="check">
+          <input id="consent" type="checkbox">
+          <span>위 개인정보 수집·이용에 동의합니다. 처음 입장할 때 필요합니다.</span>
+        </label>
         <button class="primary" id="login" type="submit">로그인</button>
         <p class="form-error" id="form-error" role="alert"></p>
       </form>

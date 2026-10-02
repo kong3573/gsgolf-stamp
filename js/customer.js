@@ -3,14 +3,13 @@ import { mount, qs, setError, setBusy, el } from './dom.js';
 import { authErrorMessage } from './errors.js';
 import {
   normalizePhone,
-  last4,
-  initialAuthPassword,
   toAuthEmail,
   phoneFromEmail,
   maskPhone,
   passwordsForSignIn,
   validateNewPassword,
   cleanName,
+  firstRegistration,
 } from './phone.js';
 
 const CREDENTIAL_ERRORS = new Set([
@@ -27,6 +26,7 @@ let dbMod;
 let generation = 0;
 let flash = '';
 let signupName = '';
+let signupMustChange = true;
 
 function renderNotice(title, body, reload) {
   const root = mount('tpl-setup');
@@ -147,24 +147,24 @@ async function onPasswordSubmit(event, user, data) {
   }
 }
 
-function newCustomerRecord(phone, name) {
+function newCustomerRecord(phone, name, mustChange) {
   return {
     phone,
     name,
     stamps: 0,
     totalEarned: 0,
     totalRedeemed: 0,
-    mustChangePassword: true,
+    mustChangePassword: mustChange,
     role: 'customer',
     createdAt: dbMod.serverTimestamp(),
     updatedAt: dbMod.serverTimestamp(),
   };
 }
 
-async function commitRegistration(user, phone, name, logFields, pendingRef) {
+async function commitRegistration(user, phone, name, logFields, pendingRef, mustChange) {
   const userRef = dbMod.doc(db, 'users', user.uid);
   const batch = dbMod.writeBatch(db);
-  batch.set(userRef, newCustomerRecord(phone, name));
+  batch.set(userRef, newCustomerRecord(phone, name, mustChange));
   batch.set(dbMod.doc(dbMod.collection(db, 'logs')), {
     uid: user.uid,
     phone,
@@ -181,6 +181,7 @@ async function commitRegistration(user, phone, name, logFields, pendingRef) {
     throw Object.assign(new Error('REGISTER_FAILED'), { code: 'REGISTER_FAILED' });
   }
   signupName = '';
+  signupMustChange = true;
   return { status: 'ok', data: created.data() };
 }
 
@@ -195,11 +196,18 @@ async function ensureProfile(user) {
   const pendingSnap = await dbMod.getDoc(pendingRef);
   if (pendingSnap.exists()) {
     const pending = pendingSnap.data();
-    return commitRegistration(user, phone, pending.name, { byAdminUid: pending.createdBy }, pendingRef);
+    return commitRegistration(
+      user,
+      phone,
+      pending.name,
+      { byAdminUid: pending.createdBy },
+      pendingRef,
+      signupMustChange,
+    );
   }
 
   if (!signupName) return { status: 'need-name' };
-  return commitRegistration(user, phone, signupName, {}, null);
+  return commitRegistration(user, phone, signupName, {}, null, signupMustChange);
 }
 
 async function settle(user, gen) {
@@ -265,9 +273,10 @@ async function onLoginSubmit(event) {
     setError(errorNode, '휴대폰 번호는 010-1234-5678 형식으로 입력해 주세요.');
     return;
   }
+  const registration = firstRegistration(phone, typed);
   const candidates = passwordsForSignIn(phone, typed);
-  if (candidates.length === 0) {
-    setError(errorNode, '첫 비밀번호는 번호 뒷자리 4자리입니다. 바꾼 뒤에는 6자 이상을 입력해 주세요.');
+  if (!registration || candidates.length === 0) {
+    setError(errorNode, '비밀번호는 번호 뒷자리 4자리이거나 6자 이상으로 입력해 주세요.');
     return;
   }
   setBusy(button, true);
@@ -285,8 +294,8 @@ async function onLoginSubmit(event) {
       }
     }
     if (signedIn) return;
-    if (typed !== last4(phone)) {
-      setError(errorNode, authErrorMessage(lastError, 'customer'));
+    if (!name) {
+      setError(errorNode, '처음 시작할 때는 이름을 입력해 주세요. 등록되면 스탬프는 0개입니다.');
       return;
     }
     if (!qs(form, '#consent').checked) {
@@ -295,7 +304,8 @@ async function onLoginSubmit(event) {
       qs(form, '#consent').focus();
       return;
     }
-    await authMod.createUserWithEmailAndPassword(auth, toAuthEmail(phone), initialAuthPassword(phone));
+    signupMustChange = registration.mustChange;
+    await authMod.createUserWithEmailAndPassword(auth, toAuthEmail(phone), registration.secret);
   } catch (error) {
     if (!button.isConnected) return;
     if (error.code === 'auth/email-already-in-use') {

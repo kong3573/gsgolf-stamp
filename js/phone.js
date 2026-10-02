@@ -63,8 +63,19 @@ export function cleanName(input) {
 export function passwordsForSignIn(phone, typed) {
   if (typeof typed !== 'string' || typed.length === 0) return [];
   if (typed === last4(phone)) return [initialAuthPassword(phone)];
-  if (typed.length >= 6) return [typed];
+  if (typed.length >= 6 && typed.length <= 64) return [typed];
   return [];
+}
+
+// 첫 입장에서 계정을 만들 때 쓰는 비밀번호.
+// 뒷자리 4자리면 기존처럼 두 번 붙여 저장하고, 6자 이상이면 손님이 정한 값을 그대로 쓴다.
+export function firstRegistration(phone, typed) {
+  const candidates = passwordsForSignIn(phone, typed);
+  if (candidates.length === 0) return null;
+  return {
+    secret: candidates[0],
+    mustChange: typed === last4(phone),
+  };
 }
 
 export function validateNewPassword(phone, currentTyped, next, confirm) {

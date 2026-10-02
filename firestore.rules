@@ -130,7 +130,7 @@ service cloud.firestore {
         && request.resource.data.stamps == 0
         && request.resource.data.totalEarned == 0
         && request.resource.data.totalRedeemed == 0
-        && request.resource.data.mustChangePassword == true
+        && request.resource.data.mustChangePassword is bool
         && request.resource.data.role == 'customer'
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time
@@ -215,7 +215,7 @@ service cloud.firestore {
         && request.resource.data.stamps == 0
         && request.resource.data.totalEarned == 0
         && request.resource.data.totalRedeemed == 0
-        && request.resource.data.mustChangePassword == true
+        && request.resource.data.mustChangePassword is bool
         && request.resource.data.role == 'customer'
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time
