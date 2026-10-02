@@ -236,6 +236,12 @@ button.ghost {
   white-space: nowrap;
 }
 
+.lookup-hit + .lookup-hit {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

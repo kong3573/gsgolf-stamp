@@ -1,7 +1,7 @@
 import { bootFirebase } from './firebase-app.js';
 import { mount, qs, setError, setBusy, el, formatWhen } from './dom.js';
 import { authErrorMessage } from './errors.js';
-import { normalizePhone, last4, cleanName, formatPhone } from './phone.js';
+import { normalizePhone, last4, cleanName, formatPhone, lookupKey } from './phone.js';
 
 const LOG_LABEL = {
   register: '등록',
@@ -161,7 +161,8 @@ async function onRegister(event) {
 
 function memberNodes(id, data) {
   const stamps = Number(data.stamps) || 0;
-  const wrap = el('div');
+  const wrap = el('div', 'lookup-hit');
+  wrap.dataset.uid = id;
   wrap.append(
     el('p', '', `${data.name || '손님'} · ${formatPhone(data.phone)}`),
     el('p', 'count', `${stamps} / 10`),
@@ -193,9 +194,9 @@ function memberNodes(id, data) {
     : '10개 미만이면 무료 이용을 쓸 수 없습니다.');
   wrap.append(note);
   const status = el('p', 'form-ok', '');
-  status.id = 'act-ok';
+  status.id = `act-ok-${id}`;
   const error = el('p', 'form-error', '');
-  error.id = 'act-error';
+  error.id = `act-error-${id}`;
   error.setAttribute('role', 'alert');
   wrap.append(status, error);
   return [wrap];
@@ -203,7 +204,7 @@ function memberNodes(id, data) {
 
 function pendingNodes(data) {
   const phone = data.phone;
-  const wrap = el('div');
+  const wrap = el('div', 'lookup-hit');
   wrap.append(
     el('p', '', `${data.name || '손님'} · ${formatPhone(phone)}`),
     el('p', 'help', '아직 첫 입장 전입니다.'),
@@ -218,13 +219,13 @@ function pendingNodes(data) {
   cancel.addEventListener('click', () => { void cancelPending(phone); });
   wrap.append(cancel);
   const status = el('p', 'form-error', '');
-  status.id = 'act-error';
+  status.id = `act-error-pending-${phone}`;
   wrap.append(status);
   return [wrap];
 }
 
 async function cancelPending(phone) {
-  const errorNode = document.getElementById('act-error');
+  const errorNode = document.getElementById(`act-error-pending-${phone}`);
   try {
     await dbMod.deleteDoc(dbMod.doc(db, 'pending', phone));
     showResult('대기 취소', [el('p', '', `${formatPhone(phone)} 대기를 지웠습니다.`)]);
@@ -234,11 +235,12 @@ async function cancelPending(phone) {
 }
 
 async function changeStamps(id, type) {
-  const errorNode = document.getElementById('act-error');
-  const okNode = document.getElementById('act-ok');
+  const errorNode = document.getElementById(`act-error-${id}`);
+  const okNode = document.getElementById(`act-ok-${id}`);
   if (errorNode) errorNode.textContent = '';
   if (okNode) okNode.textContent = '';
-  const buttons = [...panel.querySelectorAll('#result button')];
+  const hit = panel.querySelector(`[data-uid="${id}"]`);
+  const buttons = [...(hit ? hit.querySelectorAll('button') : panel.querySelectorAll('#result button'))];
   const previous = buttons.map((button) => button.disabled);
   buttons.forEach((button) => { button.disabled = true; });
   try {
@@ -274,8 +276,10 @@ async function changeStamps(id, type) {
       });
     });
     const fresh = await dbMod.getDoc(dbMod.doc(db, 'users', id));
-    showResult('조회 결과', memberNodes(id, fresh.data()));
-    const ok = document.getElementById('act-ok');
+    const next = memberNodes(id, fresh.data())[0];
+    if (hit && hit.isConnected) hit.replaceWith(next);
+    else showResult('조회 결과', [next]);
+    const ok = document.getElementById(`act-ok-${id}`);
     const done = {
       earn: '스탬프를 1개 적립했습니다.',
       deduct: '스탬프를 1개 차감했습니다.',
@@ -296,43 +300,78 @@ async function changeStamps(id, type) {
   }
 }
 
+async function customersFor(key) {
+  if (key.kind === 'phone') {
+    const users = await dbMod.getDocs(dbMod.query(
+      dbMod.collection(db, 'users'),
+      dbMod.where('phone', '==', key.phone),
+      dbMod.limit(5),
+    ));
+    const pendingSnap = await dbMod.getDoc(dbMod.doc(db, 'pending', key.phone));
+    return {
+      users: users.docs.map((doc) => ({ id: doc.id, data: doc.data() })),
+      pending: pendingSnap.exists() ? [pendingSnap.data()] : [],
+    };
+  }
+  const [usersSnap, pendingSnap] = await Promise.all([
+    dbMod.getDocs(dbMod.collection(db, 'users')),
+    dbMod.getDocs(dbMod.collection(db, 'pending')),
+  ]);
+  const users = [];
+  usersSnap.forEach((doc) => {
+    const data = doc.data();
+    if (String(data.phone || '').endsWith(key.tail)) users.push({ id: doc.id, data });
+  });
+  const pending = [];
+  pendingSnap.forEach((doc) => {
+    const data = doc.data();
+    const phone = data.phone || doc.id;
+    if (String(phone).endsWith(key.tail)) pending.push({ ...data, phone });
+  });
+  users.sort((a, b) => String(a.data.name || '').localeCompare(String(b.data.name || ''), 'ko'));
+  pending.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ko'));
+  return { users, pending };
+}
+
 async function onLookup(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const button = qs(form, '#find-submit');
   const errorNode = qs(form, '#find-error');
   setError(errorNode, '');
-  const phone = normalizePhone(qs(form, '#find-phone').value);
-  if (!phone) {
-    setError(errorNode, '휴대폰 번호는 010-1234-5678 형식으로 입력해 주세요.');
+  const key = lookupKey(qs(form, '#find-phone').value);
+  if (!key) {
+    setError(errorNode, '전체 번호 또는 뒷자리 4자리를 입력해 주세요.');
     return;
   }
   setBusy(button, true);
   try {
-    const users = await dbMod.getDocs(dbMod.query(
-      dbMod.collection(db, 'users'),
-      dbMod.where('phone', '==', phone),
-      dbMod.limit(1),
-    ));
-    if (!users.empty) {
-      const found = users.docs[0];
-      showResult('조회 결과', memberNodes(found.id, found.data()));
-      const pendingSnap = await dbMod.getDoc(dbMod.doc(db, 'pending', phone));
-      if (pendingSnap.exists()) {
+    const found = await customersFor(key);
+    const userPhones = new Set(found.users.map((item) => item.data.phone));
+    const waiting = found.pending.filter((item) => !userPhones.has(item.phone));
+    const nodes = [];
+    for (const item of found.users) {
+      const blocks = memberNodes(item.id, item.data);
+      const samePending = found.pending.find((row) => row.phone === item.data.phone);
+      if (samePending) {
         const extra = el('p', 'help', '같은 번호의 대기 등록이 남아 있습니다. 필요하면 대기를 지우세요.');
         const cancel = el('button', 'ghost', '남은 대기 지우기');
         cancel.type = 'button';
-        cancel.addEventListener('click', () => { void cancelPending(phone); });
-        qs(panel, '#result').append(extra, cancel);
+        cancel.addEventListener('click', () => { void cancelPending(item.data.phone); });
+        blocks[0].append(extra, cancel);
       }
+      nodes.push(blocks[0]);
+    }
+    for (const item of waiting) nodes.push(pendingNodes(item)[0]);
+    if (nodes.length === 0) {
+      const message = key.kind === 'tail'
+        ? `뒷자리 ${key.tail}로 등록된 손님이 없습니다.`
+        : '등록되지 않은 번호입니다. 손님이 이름과 번호로 로그인하면 스탬프 0개로 시작됩니다.';
+      showResult('조회 결과', [el('p', '', message)]);
       return;
     }
-    const pendingSnap = await dbMod.getDoc(dbMod.doc(db, 'pending', phone));
-    if (pendingSnap.exists()) {
-      showResult('입장 대기', pendingNodes(pendingSnap.data()));
-      return;
-    }
-    showResult('조회 결과', [el('p', '', '등록되지 않은 번호입니다. 손님이 이름과 번호로 로그인하면 스탬프 0개로 시작됩니다.')]);
+    const count = found.users.length + waiting.length;
+    showResult(count > 1 ? `조회 결과 ${count}명` : '조회 결과', nodes);
   } catch (error) {
     setError(errorNode, authErrorMessage(error, 'admin'));
   } finally {

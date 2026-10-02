@@ -15,6 +15,15 @@ export function last4(phone) {
   return phone.slice(-4);
 }
 
+// 직원 조회. 숫자 4자면 뒷자리, 전체 번호면 그 번호.
+export function lookupKey(input) {
+  const compact = String(input ?? '').trim().replace(/[\s-]/g, '');
+  if (/^\d{4}$/.test(compact)) return { kind: 'tail', tail: compact };
+  const phone = normalizePhone(input);
+  if (phone) return { kind: 'phone', phone };
+  return null;
+}
+
 // Firebase는 6자 미만 비밀번호를 거절한다.
 // 손님은 뒷자리 4자리만 입력하고, 서버로 보낼 때만 그 4자리를 두 번 붙인다.
 export function initialAuthPassword(phone) {
