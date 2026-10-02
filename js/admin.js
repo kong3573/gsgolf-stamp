@@ -332,7 +332,7 @@ async function onLookup(event) {
       showResult('입장 대기', pendingNodes(pendingSnap.data()));
       return;
     }
-    showResult('조회 결과', [el('p', '', '등록되지 않은 번호입니다. 먼저 신규 등록을 하세요.')]);
+    showResult('조회 결과', [el('p', '', '등록되지 않은 번호입니다. 손님이 이름과 번호로 로그인하면 스탬프 0개로 시작됩니다.')]);
   } catch (error) {
     setError(errorNode, authErrorMessage(error, 'admin'));
   } finally {

@@ -34,8 +34,10 @@
   <template id="tpl-login">
     <section class="card narrow">
       <h2>스탬프 확인</h2>
-      <p class="help">아이디는 휴대폰 번호입니다. 카운터에서 등록한 뒤, 첫 비밀번호는 뒷자리 4자리입니다. 들어가서 바로 바꾸세요.</p>
+      <p class="help">처음이면 이름과 휴대폰 번호, 뒷자리 4자리로 로그인하세요. 바로 등록되고 스탬프는 0개로 시작합니다. 들어가서 비밀번호를 바꾸세요.</p>
       <form id="login-form">
+        <label for="name">이름</label>
+        <input id="name" name="name" type="text" maxlength="40" autocomplete="name" placeholder="처음 시작할 때 입력">
         <label for="phone">휴대폰 번호</label>
         <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-1234-5678" maxlength="20" required>
         <label for="password">비밀번호</label>

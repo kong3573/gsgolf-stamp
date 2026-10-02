@@ -119,6 +119,42 @@ service cloud.firestore {
         && get(userPath(request.resource.data.uid)).data.phone == request.resource.data.phone;
     }
 
+    // 카운터 대기 없이 손님이 직접 시작할 때. 스탬프는 0개만 허용한다.
+    function customerSelfCreate(userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && userShape(request.resource.data)
+        && isPhone(request.resource.data.phone)
+        && isThisCustomer(request.resource.data.phone)
+        && validName(request.resource.data.name)
+        && request.resource.data.stamps == 0
+        && request.resource.data.totalEarned == 0
+        && request.resource.data.totalRedeemed == 0
+        && request.resource.data.mustChangePassword == true
+        && request.resource.data.role == 'customer'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && !exists(pendingPath(request.resource.data.phone));
+    }
+
+    // 직접 가입 로그. 직원 UID는 없고, 대기 문서도 없다.
+    function selfRegisterLog() {
+      return signedIn()
+        && request.resource.data.keys().hasOnly([
+          'uid', 'phone', 'type', 'createdAt', 'stampsAfter', 'consent'
+        ])
+        && request.resource.data.type == 'register'
+        && request.resource.data.uid == request.auth.uid
+        && isPhone(request.resource.data.phone)
+        && isThisCustomer(request.resource.data.phone)
+        && request.resource.data.stampsAfter == 0
+        && request.resource.data.consent == true
+        && request.resource.data.createdAt == request.time
+        && !exists(pendingPath(request.resource.data.phone))
+        && getAfter(userPath(request.auth.uid)).data.phone == request.resource.data.phone
+        && getAfter(userPath(request.auth.uid)).data.stamps == 0;
+    }
+
     // 가입 배치의 이전 상태는 pending 존재, 이후 상태는 users 문서 생성.
     function customerRegisterLog() {
       return signedIn()
@@ -169,7 +205,8 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if (signedIn() && request.auth.uid == userId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if signedIn()
+      allow create: if customerSelfCreate(userId) || (
+        signedIn()
         && request.auth.uid == userId
         && userShape(request.resource.data)
         && isPhone(request.resource.data.phone)
@@ -185,13 +222,14 @@ service cloud.firestore {
         && exists(pendingPath(request.resource.data.phone))
         && get(pendingPath(request.resource.data.phone)).data.consent == true
         && get(pendingPath(request.resource.data.phone)).data.name == request.resource.data.name
-        && get(pendingPath(request.resource.data.phone)).data.phone == request.resource.data.phone;
+        && get(pendingPath(request.resource.data.phone)).data.phone == request.resource.data.phone
+      );
       allow update: if customerProfileUpdate(userId) || adminEarn() || adminRedeem() || adminDeduct();
     }
 
     match /logs/{logId} {
       allow get, list: if isAdmin();
-      allow create: if adminLog() || customerRegisterLog();
+      allow create: if adminLog() || customerRegisterLog() || selfRegisterLog();
     }
   }
 }
