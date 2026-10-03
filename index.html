@@ -6,7 +6,13 @@
   <meta name="theme-color" content="#0e3b28">
   <meta name="robots" content="noindex">
   <meta name="description" content="광산골프 어프로치 연습 스탬프. 10회를 채우면 연습 1시간 무료.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="광산골프">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>광산골프 스탬프</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%230e3b28'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23e7c98a' stroke-width='2'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -14,7 +20,10 @@
   <header class="mast">
     <div class="wrap">
       <p class="eyebrow">광주 광산 · 실잔디 어프로치</p>
-      <h1>광산골프</h1>
+      <div class="mast-title">
+        <h1>광산골프</h1>
+        <button class="save-app" id="save-app" type="button" hidden>앱 저장</button>
+      </div>
       <p class="lede">10회를 채우면 연습 1시간 무료</p>
     </div>
   </header>
@@ -100,6 +109,13 @@
     </section>
     <button class="ghost" id="logout" type="button">로그아웃</button>
   </template>
+
+  <dialog class="install-help" id="install-help">
+    <h2>바탕화면에 저장</h2>
+    <p class="help">아이콘을 누르면 스탬프 첫 화면이 열립니다.</p>
+    <ol id="install-steps"></ol>
+    <button class="primary" id="install-close" type="button">닫기</button>
+  </dialog>
 
   <script type="module" src="js/customer.js"></script>
 </body>

@@ -60,6 +60,13 @@ body:not(.page-admin) main { margin-top: -18px; }
   text-transform: none;
 }
 
+.mast-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .mast h1 {
   margin: 4px 0 0;
   font-family: "Noto Serif KR", serif;
@@ -67,6 +74,44 @@ body:not(.page-admin) main { margin-top: -18px; }
   font-weight: 700;
   line-height: 1.15;
 }
+
+.mast-title h1 { margin: 0; min-width: 0; }
+
+.save-app {
+  width: auto;
+  flex: none;
+  margin: 0;
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 1px solid #e7c98a;
+  border-radius: 999px;
+  background: transparent;
+  color: #f4e4c4;
+  font-size: 0.92rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.install-help {
+  width: min(420px, calc(100% - 32px));
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  color: var(--ink);
+}
+
+.install-help::backdrop { background: rgba(20, 36, 28, 0.45); }
+
+.install-help h2 {
+  margin: 0;
+  font-family: "Noto Serif KR", serif;
+  font-size: 1.35rem;
+}
+
+.install-help ol { margin: 12px 0 0; padding-left: 1.2rem; }
+
+.install-help li { margin: 8px 0; }
 
 .lede {
   margin: 8px 0 0;

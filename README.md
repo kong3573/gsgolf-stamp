@@ -25,6 +25,8 @@
 
 이 저장소는 https://github.com/kong3573/gsgolf-stamp 이고, 손님 주소는 https://kong3573.github.io/gsgolf-stamp/ 입니다. 직원 주소는 그 뒤에 `admin.html` 을 붙입니다.
 
+손님은 로그인한 뒤 제목 오른쪽 **앱 저장**으로 스마트폰 바탕화면에 아이콘을 둘 수 있습니다. 아이콘은 스탬프 첫 화면을 엽니다. 아이폰은 Safari의 홈 화면에 추가로 저장합니다.
+
 1. 저장소 이름은 `gsgolf-stamp`, 공개(Public), 브랜치는 `main` 입니다. Pages는 `main` 의 `/` 에서 배포됩니다.
 2. 저장소 Settings → Pages → Build and deployment → Deploy from a branch.
 3. Branch는 `main`, 폴더는 `/ (root)`, Save.

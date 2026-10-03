@@ -1,5 +1,6 @@
 import { bootFirebase } from './firebase-app.js';
 import { mount, qs, setError, setBusy, el } from './dom.js';
+import { setCustomerLoggedIn } from './install.js';
 import { authErrorMessage } from './errors.js';
 import {
   normalizePhone,
@@ -29,6 +30,7 @@ let signupName = '';
 let signupMustChange = true;
 
 function renderNotice(title, body, reload) {
+  setCustomerLoggedIn(false);
   const root = mount('tpl-setup');
   qs(root, '#setup-title').textContent = title;
   qs(root, '#setup-body').textContent = body;
@@ -42,6 +44,7 @@ function renderNotice(title, body, reload) {
 }
 
 function renderLogin() {
+  setCustomerLoggedIn(false);
   const panel = mount('tpl-login');
   qs(panel, '#login-form').addEventListener('submit', onLoginSubmit);
   qs(panel, '#toggle-pw').addEventListener('click', () => {
@@ -63,6 +66,7 @@ function fillStamps(grid, stamps) {
 }
 
 function renderHome(user, data, notice) {
+  setCustomerLoggedIn(true);
   const panel = mount('tpl-home');
   const stamps = Math.max(0, Math.min(10, Number(data.stamps) || 0));
   const name = data.name || '손님';
